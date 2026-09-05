@@ -11,6 +11,7 @@ on:
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
 
     steps:
@@ -19,11 +20,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
 
-      - name: Maven Build
-        run: ./mvnw clean package -DskipTests
+      - name: Make Maven Wrapper executable
+        run: chmod +x mvnw
+
+      - name: Maven Build and Unit Test
+        run: ./mvnw clean package
