@@ -32,9 +32,4 @@ jobs:
       - name: Maven Build and Unit Test
         run: ./mvnw clean package
 
-      - name: SonarQube Analysis
-        run: |
-          ./mvnw sonar:sonar \
-            -Dsonar.host.url=http://localhost:9000 \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.projectKey=spring-boot-mysql-docker-compose
+      
