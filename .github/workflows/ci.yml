@@ -9,6 +9,11 @@ on:
     branches:
       - main
 
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: devopsimage
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
   build:
 
@@ -32,16 +37,52 @@ jobs:
       - name: Maven Build and Unit Test
         run: ./mvnw clean package
 
-      - name: Docker Build
-        run: docker build -t spring-boot-app:${{ github.sha }} .
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t devopsimage:${{ github.sha }} .
 
-      - name: Trivy Image Scan
-        uses: aquasecurity/trivy-action@master
+push-ecr:
+    name: Push Docker Image to ECR
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-            image-ref: spring-boot-app:${{ github.sha }}
-            format: table
-            exit-code: '1'
-            ignore-unfixed: true
-            severity: CRITICAL,HIGH
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          ./mvnw clean package
+
+          docker build \
+            -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+
+      - name: Tag Docker image
+        run: |
+          docker tag \
+            ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+
 
       
