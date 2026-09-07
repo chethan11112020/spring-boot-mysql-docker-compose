@@ -42,46 +42,46 @@ jobs:
           docker build \
             -t devopsimage:${{ github.sha }} .
 
-push-ecr:
-    name: Push Docker Image to ECR
-    runs-on: ubuntu-latest
 
-    permissions:
-      id-token: write
-      contents: read
+      - name: Push Docker Image to ECR
+        
 
-    steps:
+        permissions:
+          id-token: write
+          contents: read
 
-      - name: Checkout code
-        uses: actions/checkout@v4
+        steps:
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          - name: Checkout code
+            uses: actions/checkout@v4
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+          - name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@v5
+            with:
+              aws-region: ${{ env.AWS_REGION }}
+              role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
 
-      - name: Build Docker image
-        run: |
-          ./mvnw clean package
+          - name: Login to Amazon ECR
+            id: login-ecr
+            uses: aws-actions/amazon-ecr-login@v2
 
-          docker build \
-            -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+          - name: Build Docker image
+            run: |
+              ./mvnw clean package
 
-      - name: Tag Docker image
-        run: |
-          docker tag \
-            ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+              docker build \
+                -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
 
-      - name: Push Docker image to ECR
-        run: |
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          - name: Tag Docker image
+            run: |
+              docker tag \
+                ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
+                ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+          - name: Push Docker image to ECR
+            run: |
+              docker push \
+                ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
 
 
