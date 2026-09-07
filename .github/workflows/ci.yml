@@ -1,23 +1,12 @@
-name: Java CI
+name: AWS OIDC Test
 
 on:
   push:
     branches:
       - main
 
-  pull_request:
-    branches:
-      - main
-
-env:
-  AWS_REGION: ap-south-1
-  ECR_REPOSITORY: devopsimage
-  IMAGE_TAG: ${{ github.sha }}
-
 jobs:
-
-  build:
-
+  test-aws:
     runs-on: ubuntu-latest
 
     permissions:
@@ -26,53 +15,17 @@ jobs:
 
     steps:
 
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: maven
-
-      - name: Make Maven Wrapper executable
-        run: chmod +x mvnw
-
-      - name: Maven Build and Unit Test
-        run: ./mvnw clean package
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
-
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
-
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ap-south-1
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
 
-      
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Tag Docker image
-        run: |
-          docker tag \
-            ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-
-      - name: Push Docker image to ECR
-        run: |
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
       
 
