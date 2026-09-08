@@ -4,10 +4,21 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  azureServiceConnection: 'acr-service-connection'
+  acrName: 'chethandevopsacr'
+  acrLoginServer: 'chethandevopsacr.azurecr.io'
+  imageRepository: 'spring-boot-mysql'
+  imageTag: '$(Build.BuildId)'
+
 steps:
 
+# 1. Checkout source code
 - checkout: self
+  displayName: 'Checkout Code'
 
+
+# 2. Setup Java 17
 - task: JavaToolInstaller@0
   displayName: 'Setup Java 17'
   inputs:
@@ -15,12 +26,41 @@ steps:
     jdkArchitectureOption: 'x64'
     jdkSourceOption: 'PreInstalled'
 
+
+# 3. Make Maven Wrapper executable
 - script: chmod +x mvnw
   displayName: 'Make Maven Wrapper executable'
 
+
+# 4. Maven Build and Unit Test
 - script: ./mvnw clean package
   displayName: 'Maven Build and Unit Test'
 
+
+# 5. Build Docker Image
 - script: |
-    docker build -t devopsimage:$(Build.BuildId) .
+    docker build \
+      -t $(acrLoginServer)/$(imageRepository):$(imageTag) \
+      .
   displayName: 'Build Docker Image'
+
+
+# 6. Login to Azure and ACR
+- task: AzureCLI@2
+  displayName: 'Login to Azure Container Registry'
+  inputs:
+    azureSubscription: '$(azureServiceConnection)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Logging in to Azure..."
+      az account show
+
+      echo "Logging in to ACR..."
+      az acr login --name $(acrName)
+
+
+# 7. Push Docker Image to ACR
+- script: |
+    docker push $(acrLoginServer)/$(imageRepository):$(imageTag)
+  displayName: 'Push Docker Image to ACR'
