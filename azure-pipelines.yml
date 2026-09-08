@@ -1,0 +1,26 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+- checkout: self
+
+- task: JavaToolInstaller@0
+  displayName: 'Setup Java 17'
+  inputs:
+    versionSpec: '17'
+    jdkArchitectureOption: 'x64'
+    jdkSourceOption: 'PreInstalled'
+
+- script: chmod +x mvnw
+  displayName: 'Make Maven Wrapper executable'
+
+- script: ./mvnw clean package
+  displayName: 'Maven Build and Unit Test'
+
+- script: |
+    docker build -t devopsimage:$(Build.BuildId) .
+  displayName: 'Build Docker Image'
